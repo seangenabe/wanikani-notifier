@@ -1,0 +1,44 @@
+{
+  "name": "wanikani-notifier",
+  "version": "1.0.0-1",
+  "description": "Wanikani new lessons and reviews notifier",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "babel src --stage 1 --out-dir lib --source-maps --optional runtime",
+    "watch": "babel src --stage 1 --out-dir lib --source-maps --optional runtime --watch",
+    "selfdeploy": "npm run compile && npm -g i .",
+    "start": "node ./bin/wanikani-notifier"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seangenabe/wanikani-notifier.git"
+  },
+  "keywords": [
+    "wanikani",
+    "notification",
+    "notifier"
+  ],
+  "author": "Sean Genabe <seangenabe@outlook.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/seangenabe/wanikani-notifier/issues"
+  },
+  "homepage": "https://github.com/seangenabe/wanikani-notifier#readme",
+  "dependencies": {
+    "babel-runtime": "^5.5.6",
+    "catbox": "^4.3.0",
+    "catbox-memory": "^1.1.1",
+    "moment": "^2.10.3",
+    "node-notifier": "^4.2.1",
+    "nomnom": "^1.8.1",
+    "request": "^2.57.0"
+  },
+  "devDependencies": {
+    "babel": "^5.5.6"
+  },
+  "preferGlobal": true,
+  "bin": {
+    "wanikani-notifier": "./bin/wanikani-notifier"
+  }
+}
