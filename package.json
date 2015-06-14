@@ -7,8 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "babel src --stage 1 --out-dir lib --source-maps --optional runtime",
     "watch": "babel src --stage 1 --out-dir lib --source-maps --optional runtime --watch",
-    "selfdeploy": "npm run compile && npm -g i .",
-    "start": "node ./bin/wanikani-notifier"
+    "start:install": "node . install",
+    "start:uninstall": "node . uninstall",
+    "start": "node . start"
   },
   "repository": {
     "type": "git",
@@ -27,11 +28,11 @@
   "homepage": "https://github.com/seangenabe/wanikani-notifier#readme",
   "dependencies": {
     "babel-runtime": "^5.5.6",
-    "catbox": "^4.3.0",
-    "catbox-memory": "^1.1.1",
+    "chalk": "^1.0.0",
     "moment": "^2.10.3",
     "node-notifier": "^4.2.1",
     "nomnom": "^1.8.1",
+    "open": "0.0.5",
     "request": "^2.57.0"
   },
   "devDependencies": {
