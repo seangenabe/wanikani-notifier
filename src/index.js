@@ -138,7 +138,7 @@ class WaniKaniNotifier {
       }
 
       var nextReview = data.requested_information.next_review_date * 1000;
-      var timeBeforeNextReview = nextReview - timeDifference - new Date() + minilag
+      var timeBeforeNextReview = nextReview - timeDifference - new Date() + this.config.minilag
       console.log(chalk.yellow("No pending items. Your next review will be in " +
         Moment.duration(timeBeforeNextReview).humanize()))
       var nextDelay = Math.max(timeBeforeNextReview, this.config.waitingSuspendDuration)
