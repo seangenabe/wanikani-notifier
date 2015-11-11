@@ -1,32 +1,91 @@
+'use strict'
 
-var Request = require('request')
-var Notifier = require('node-notifier')
-var Delayer = require('./delayer')
-var Moment = require('moment')
-var chalk = require('chalk')
-var open = require('open')
+const chalk = require('chalk')
+const Moment = require('moment')
+const Notifier = require('node-notifier')
+const open = require('open')
+const Util = require('util')
+const WaniKaniEmitter = require('wanikani-emitter')
 
-class WaniKaniNotifier {
+class WaniKaniNotifier extends WaniKaniEmitter {
 
   constructor(config) {
-    config = config || {}
+    super(config)
+
     config.key = config.key || process.env.npm_package_config_key
-    if (!config.key) {
+    config.dashboardOnBothPending = config.dashboardOnBothPending ||
+      process.env.npm_package_config_dashboard_on_both_pending ||
+      false
+    config.errorSuspendDuration = config.errorSuspendDuration ||
+      process.env.npm_package_config_error_suspend_duration
+    config.notifiedSuspendDuration = config.notifiedSuspendDuration ||
+      process.env.npm_package_config_notified_suspend_duration
+    config.waitingSuspendDuration = config.waitingSuspendDuration ||
+      process.env.npm_package_config_waiting_suspend_duration
+    config.minilag = config.minilag ||
+      process.env.npm_package_config_minilag
+    config.log = console.log
+    config.debuglog = Util.debuglog('wanikani-notifier')
+    this.log = log
+    this.debuglog = debuglog
+    this.config = config
+
+    if (!key) {
+      debuglog("API key not specified")
       throw new Error("API key not specified.")
     }
-    config.errorSuspendDuration = config.errorSuspendDuration || 1000 * 60 * 5
-    config.notifiedSuspendDuration = config.notifiedSuspendDuration || 1000 * 60 * 10
-    config.waitingSuspendDuration = config.waitingSuspendDuration || 1000 * 36
-    config.dashboardOnBothPending = config.dashboardOnBothPending || false
-    config.minilag = config.minilag || 1000
-    this.config = config
-    this.lastNotification = {lessons: 0, reviews: 0}
+
+    this.on('log_scheduled', (duration) => {
+      config.log(chalk.yellow("Will check back in " +
+        Moment.duration(duration).humanize()))
+    })
+
+    this.on('error', err => {
+      config.debuglog(chalk.red(err.message))
+    })
+
+    this.on('log_timediff', timeDifference => {
+      let absoluteTD = Math.abs(timeDifference)
+      let behindAhead = (timeDifference < 0) ? 'behind' : 'ahead'
+      config.log(chalk.dim(
+        `Response time is ${absoluteTD} milliseconds ${behindAhead} of local time.`
+      ))
+    })
+
+    this.on('notify', (lastNotification) => {
+      let { lessons, reviews } = lastNotification
+      let messages = []
+      if (lessons) {
+        messages.push(lessons + " pending lessons")
+      }
+      if (reviews) {
+        messages.push(reviews + " pending reviews")
+      }
+      var message = "You have " + messages.join(" and ") + "."
+      Notifier.notify({
+        title: "WaniKani Notifier",
+        message: message,
+        sound: true,
+        wait: true
+      })
+      config.log(chalk.bold(message))
+      config.log("Notification sent.")
+    })
+
+    this.on('log_untouched', function() {
+      config.log("You haven't touched your items yet since the last notification.")
+    })
+
+    this.on('log_nopending', function(duration) {
+      config.log(chalk.yellow("No pending items. Your next review will be in " +
+        Moment.duration(duration).humanize()))
+    })
 
     Notifier.on('click', () => {
-      console.log('Notification clicked.')
-      var lessons = this.lastNotification.lessons
-      var reviews = this.lastNotification.reviews
-      var link
+      config.log('Notification clicked.')
+      let lessons = this.lastNotification.lessons
+      let reviews = this.lastNotification.reviews
+      let link
       if (lessons && reviews) {
         if (this.config.dashboardOnBothPending) {
           link = 'https://www.wanikani.com/dashboard'
@@ -45,110 +104,9 @@ class WaniKaniNotifier {
         return
       }
 
-      console.log('Opening ' + link)
+      this.log('Opening ' + link)
       open(link)
     })
-  }
-
-  async start() {
-    try {
-      while (true) {
-        var delay = await this.process()
-        this.delayer = new Delayer(delay)
-        await this.delayer.promise
-      }
-    }
-    catch (err) {
-      if (err.setByDelayer) return
-      throw err
-    }
-  }
-
-  stop() {
-    if (this.delayer) {
-      this.delayer.cancel()
-    }
-  }
-
-  // Checks for pending notifications. Returns a time span representing the suggested next time to check for updates.
-  async process() {
-    // Check for new items.
-    var uri = 'https://www.wanikani.com/api/v1.3/user/' + encodeURIComponent(this.config.key) + '/study-queue';
-
-    function scheduleNextCheck(duration) {
-      console.log(chalk.yellow("Will check back in " + Moment.duration(duration).humanize()))
-      return duration
-    }
-
-    try {
-      var response = null
-      var body = await new Promise(function(resolve, reject) {
-        Request(uri, function(error, _response, body) {
-          if (error) {
-            reject(error)
-            return
-          }
-          response = _response
-          resolve(body)
-        })
-      })
-
-      var data = JSON.parse(body)
-      if (data.error) {
-        console.log(chalk.red("API error occured. Please make sure the configuration is correct."))
-        console.error("API error occured. Please make sure the configuration is correct.")
-        throw new Error(data.error.message)
-      }
-
-      // Assuming server is ahead.
-      var timeDifference = new Date(response.headers.date) - new Date()
-      console.log(chalk.dim("Response time is " + Math.abs(timeDifference) + " milliseconds " +
-        ((timeDifference < 0) ? "behind" : "ahead") +
-        " of local time."))
-
-      var lessons = data.requested_information.lessons_available
-      var reviews = data.requested_information.reviews_available
-      if (lessons || reviews) {
-        if (this.lastNotification.lessons != lessons || this.lastNotification.reviews != reviews) {
-          var messages = []
-          if (lessons) {
-            messages.push(lessons + " pending lessons")
-          }
-          if (reviews) {
-            messages.push(reviews + " pending reviews")
-          }
-          var message = "You have " + messages.join(" and ") + "."
-          this.lastNotification = {
-            lessons: lessons,
-            reviews: reviews
-          }
-          Notifier.notify({
-            title: "WaniKani Notifier",
-            message: message,
-            sound: true,
-            wait: true
-          })
-          console.log(chalk.bold(message))
-          console.log("Notification sent.")
-        }
-        else {
-          console.log("You haven't touched your items yet since the last notification.")
-        }
-        return scheduleNextCheck(this.config.notifiedSuspendDuration)
-      }
-
-      var nextReview = data.requested_information.next_review_date * 1000;
-      var timeBeforeNextReview = nextReview - timeDifference - new Date() + this.config.minilag
-      console.log(chalk.yellow("No pending items. Your next review will be in " +
-        Moment.duration(timeBeforeNextReview).humanize()))
-      var nextDelay = Math.max(timeBeforeNextReview, this.config.waitingSuspendDuration)
-      return scheduleNextCheck(nextDelay)
-    }
-    catch (err) {
-      console.log(chalk.red(err.message))
-      console.error(err)
-      return scheduleNextCheck(this.config.errorSuspendDuration)
-    }
   }
 
   static console() {
@@ -165,7 +123,7 @@ class WaniKaniNotifier {
 
     async function promptForKey(key) {
       if (key) return key
-      key = process.env.npm_package_config_key || process.env.WANIKANI_NOTIFIER_API_KEY
+      key = process.env.npm_package_config_key
       if (key) return key
 
       var i = Readline.createInterface({
@@ -190,13 +148,11 @@ class WaniKaniNotifier {
     start.callback(async function(opts) {
       try {
         var key = await promptForKey(opts.key)
-        var notifier = new WaniKaniNotifier({
-          key: key
-        })
-        notifier.start()
+        var notifier = new WaniKaniNotifier({key})
+        await notifier.start()
       }
       catch (err) {
-        console.error(err.message)
+        console.log(chalk.red(err.message))
         process.exit(1)
       }
     })
@@ -212,7 +168,6 @@ class WaniKaniNotifier {
       }
       catch (err) {
         console.log(chalk.red(err.message))
-        console.error(err.message)
         process.exit(1)
       }
       FS.writeFileSync(startupPath, "wanikani-notifier start " + key)

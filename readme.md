@@ -1,6 +1,6 @@
 # wanikani-notifier
 
-Wanikani new lessons and reviews notifier
+WaniKani new lessons and reviews notifier
 
 ## Usage
 
@@ -12,10 +12,12 @@ It is preferred to install this package globally.
 
 ### API key
 
-To pass the API key, either pass it as an argument (start, install),
-set it in your npm config using `npm config wanikani-notifier:key`
---this requires it to be launched from npm--, or
-set the `WANIKANI_NOTIFIER_API_KEY` environment variable.
+To pass the API key, you can:
+* Pass it as an argument (`start`, `install`)
+* Set it using `npm config` ([docs](https://docs.npmjs.com/misc/config)):
+  ```bash
+  $ npm config wanikani-notifier:key MY_WANIKANI_API_KEY
+  ```
 
 ### CLI
 
@@ -29,7 +31,6 @@ If there are no pending items, it will suspend until the next review time.
 Shows usage information.
 
 `wanikani-notifier start API_KEY`
-`npm config set wanikani-notifier API_KEY && npm start`
 
 Starts the notifier.
 
@@ -38,17 +39,15 @@ Arguments:
 * `API_KEY`: Your WaniKani public API key. You can find this under Menu > Account.
 
 `wanikani-notifier install API_KEY`
-`npm config set wanikani-notifier API_KEY && npm run start:install`
 
 Installs the notifier to be called at startup. Requires global install.
-Currently Windows-only.
+Currently Windows-only. (Suggestions welcome)
 
 Arguments:
 
 * `API_KEY`: Your WaniKani public API key. You can find this under Menu > Account.
 
 `wanikani-notifier uninstall`
-`npm run uninstall`
 
 Uninstalls the notifier from startup.
 

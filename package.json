@@ -1,12 +1,12 @@
 {
   "name": "wanikani-notifier",
-  "version": "1.0.0",
+  "version": "2.0.0-1",
   "description": "Wanikani new lessons and reviews notifier",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "babel src --stage 1 --out-dir lib --source-maps --optional runtime",
-    "watch": "babel src --stage 1 --out-dir lib --source-maps --optional runtime --watch",
+    "compile": "babel src --out-dir lib",
+    "watch": "npm run compile -- --watch",
     "start:install": "node . install",
     "start:uninstall": "node . uninstall",
     "start": "node . start"
@@ -27,19 +27,28 @@
   },
   "homepage": "https://github.com/seangenabe/wanikani-notifier#readme",
   "dependencies": {
-    "babel-runtime": "^5.5.6",
+    "babel-runtime": "^5.8.5",
     "chalk": "^1.0.0",
+    "delayer": "^1",
     "moment": "^2.10.3",
     "node-notifier": "^4.2.1",
     "nomnom": "^1.8.1",
     "open": "0.0.5",
-    "request": "^2.57.0"
+    "request": "^2.57.0",
+    "wanikani-emitter": "^1"
   },
   "devDependencies": {
-    "babel": "^5.5.6"
+    "babel": "^5.8.5"
   },
   "preferGlobal": true,
   "bin": {
     "wanikani-notifier": "./bin/wanikani-notifier"
+  },
+  "babel": {
+    "stage": 1,
+    "sourceMaps": true,
+    "optional": [
+      "runtime"
+    ]
   }
 }
