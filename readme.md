@@ -6,95 +6,68 @@ WaniKani new lessons and reviews notifier
 
 ### Install
 
-It is preferred to install this package globally.
+**Package installation**
 
-    npm i -g seangenabe/wanikani-notifier
+Install the package globally:
 
-### API key
+```
+npm i -g seangenabe/wanikani-notifier
+```
 
-To pass the API key, you can:
-* Pass it as an argument (`start`, `install`)
-* Set it using `npm config` ([docs](https://docs.npmjs.com/misc/config)):
-  ```bash
-  $ npm config wanikani-notifier:key MY_WANIKANI_API_KEY
-  ```
+**Config file (Required!)**
+
+Create a file called `.wanikani-notifierrc` in your home directory (`C:\Users\{user}` on Windows).
+
+Powered by [rc](https://www.npmjs.com/package/rc).
+
+You can put options in either JSON or INI format. See the `rc` documentation for details.
+
+Options:
+* `key` - **Required.** Your WaniKani Public API key. Get and manage your API key at https://www.wanikani.com/account .
+* `errorSuspendDuration` - How long to wait after encountering an error, in milliseconds. Default: 5 minutes
+* `notifiedSuspendDuration` - How long to wait after delivering a notification, in milliseconds. Default: 10 minutes
+* `waitingSuspendDuration` - At least how long to wait after determining that there are no pending items, in milliseconds. Default: 36 seconds
+* `dashboardOnBothPending` - Whether to go to the dashboard when there are both pending lessons and reviews. Default: `false` -- goes to the lessons page.
+* `minilag` - A small amount of time to ensure pending items will be available the next time they are scheduled to be queried, in milliseconds. Default: 1 second.
+
+### Configure to run at startup
+
+After package installation, run:
+
+```
+wanikani-notifier install
+```
+
+This will install _and_ run the service.
+
+(Alias: `i`)
+
+To uninstall, run
+
+```
+wanikani-notifier uninstall
+```
+
+(Alias: `un`)
 
 ### CLI
+
+Run using the installed global package:
+
+```
+wanikani-notifier [opts]
+```
 
 The notifier, when run, will query the WaniKani API for pending lessons and reviews.
 If there are no pending items, it will suspend until the next review time.
 
-`wanikani-notifier`
-`wanikani-notifier -h`
-`wanikani-notifier --help`
+It will continue running until closed from the terminal.
 
-Shows usage information.
-
-`wanikani-notifier start API_KEY`
-
-Starts the notifier.
-
-Arguments:
-
-* `API_KEY`: Your WaniKani public API key. You can find this under Menu > Account.
-
-`wanikani-notifier install API_KEY`
-
-Installs the notifier to be called at startup. Requires global install.
-Currently Windows-only. (Suggestions welcome)
-
-Arguments:
-
-* `API_KEY`: Your WaniKani public API key. You can find this under Menu > Account.
-
-`wanikani-notifier uninstall`
-
-Uninstalls the notifier from startup.
+Options are the same as the config file's. Pass options kebab-cased. Powered by [meow](https://www.npmjs.com/package/meow).
 
 ### API
 
-`require('wanikani-notifier')` will return the WaniKaniNotifier class.
-
-`new WaniKaniNotifier(config)`
-
-Creates a new instance of the WaniKaniNotifier class.
-
-* `config.key`: Your WaniKani public API key. You can find this under Menu > Account.
-* `config.errorSuspendDuration`: How long to wait after encountering an error, in milliseconds. Default: 5 minutes
-* `config.notifiedSuspendDuration`: How long to wait after delivering a notification, in milliseconds. Default: 10 minutes
-* `config.waitingSuspendDuration`: At least how long to wait after determining that there are no pending items, in milliseconds. Default: 36 seconds
-* `config.dashboardOnBothPending`: Whether to go to the dashboard when there are both pending lessons and reviews. Default: false--goes to the lessons page.
-* `config.minilag`: A small amount of time to ensure pending items will be available the next time they will be queried, in milliseconds. Default: 1 second.
-
-`notifier.start()`
-
-Starts the notifier loop.
-
-Returns:
-* `Promise`: Resolved when the notifier loop ends (that is, after the notifier is stopped).
-
-`notifier.stop()`
-
-Stops the notifier loop.
-
-`notifier.process()`
-
-Represents a single run of the notifier loop. Queries the WaniKani API for any pending items.
-
-Returns:
-* `Promise`: Resolves with a `Number` representing the recommended number of milliseconds to suspend operation.
-
-`WaniKaniNotifier.console()`
-
-Runs the CLI. Internal use only, API usage not recommended as it makes assumptions about the environment
-(i.e. process.exit)
-
-`WaniKaniNotifier.getStartupPath()`
-
-Gets the path where the notifier installs the startup file.
-
-Returns:
-* `Promise`: Resolves with a `String` representing the path where the notifier installs the startup file.
+This package has an [API](./API.md), but it's in a different page since you'll most likely be interested in actually running it _or_ the underlying source code (in which case the interesting bits are in [wanikani-emitter](https://www.npmjs.com/package/wanikani-emitter)).
 
 ## License
 

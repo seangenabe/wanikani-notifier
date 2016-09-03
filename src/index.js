@@ -1,88 +1,85 @@
-'use strict'
-
-const chalk = require('chalk')
-const Moment = require('moment')
-const Notifier = require('node-notifier')
-const open = require('open')
 const Util = require('util')
+const puff = require('puff/dynamic')
+const Notifier = puff(require('node-notifier'), { bind: 'original' })
 const WaniKaniEmitter = require('wanikani-emitter')
+const open = require('opn')
+const meow = require('meow')
+const rc = require('rc')
+const pkg = require('../package')
+const ServiceManager = require('./service-manager')
+const FS = require('node-puff/fs')
+
+const dlog = Util.debuglog('wanikani-notifier').bind(Util)
+
+function humanize(duration) {
+  return `${Math.floor(duration / 1000 / 60)} minutes`
+}
 
 class WaniKaniNotifier extends WaniKaniEmitter {
 
   constructor(config) {
     super(config)
 
-    config.key = config.key || process.env.npm_package_config_key
-    config.dashboardOnBothPending = config.dashboardOnBothPending ||
-      process.env.npm_package_config_dashboard_on_both_pending ||
-      false
-    config.errorSuspendDuration = config.errorSuspendDuration ||
-      process.env.npm_package_config_error_suspend_duration
-    config.notifiedSuspendDuration = config.notifiedSuspendDuration ||
-      process.env.npm_package_config_notified_suspend_duration
-    config.waitingSuspendDuration = config.waitingSuspendDuration ||
-      process.env.npm_package_config_waiting_suspend_duration
-    config.minilag = config.minilag ||
-      process.env.npm_package_config_minilag
-    config.log = console.log
-    config.debuglog = Util.debuglog('wanikani-notifier')
-    this.log = log
-    this.debuglog = debuglog
+    config = Object.assign({
+      dashboardOnBothPending: false,
+      log: dlog
+    }, config)
+
+    const log = this.log = config.log
     this.config = config
 
-    if (!key) {
-      debuglog("API key not specified")
-      throw new Error("API key not specified.")
+    if (!config.key) {
+      log("API key not specified")
+      Notifier.notify({
+        title: "WaniKani Notifier",
+        message: "API key not specified"
+      })
+      throw new Error("API key not specified. See the documentation for instructions.")
     }
 
-    this.on('log_scheduled', (duration) => {
-      config.log(chalk.yellow("Will check back in " +
-        Moment.duration(duration).humanize()))
+    this.on('log_scheduled', duration => {
+      log(`Will check back in ${humanize(duration)} minutes`)
     })
 
     this.on('error', err => {
-      config.debuglog(chalk.red(err.message))
+      log(`Error: ${err.message}`)
     })
 
     this.on('log_timediff', timeDifference => {
       let absoluteTD = Math.abs(timeDifference)
       let behindAhead = (timeDifference < 0) ? 'behind' : 'ahead'
-      config.log(chalk.dim(
-        `Response time is ${absoluteTD} milliseconds ${behindAhead} of local time.`
-      ))
+      log(`Response time is ${absoluteTD} ms ${behindAhead} of local time`)
     })
 
-    this.on('notify', (lastNotification) => {
+    this.on('notify', lastNotification => {
       let { lessons, reviews } = lastNotification
       let messages = []
       if (lessons) {
-        messages.push(lessons + " pending lessons")
+        messages.push(`${lessons} pending lessons`)
       }
       if (reviews) {
-        messages.push(reviews + " pending reviews")
+        messages.push(`${reviews} pending reviews`)
       }
-      var message = "You have " + messages.join(" and ") + "."
+      let message = `You have ${messages.join(" and ")}.`
       Notifier.notify({
         title: "WaniKani Notifier",
-        message: message,
+        message,
         sound: true,
         wait: true
       })
-      config.log(chalk.bold(message))
-      config.log("Notification sent.")
+      log(message)
     })
 
-    this.on('log_untouched', function() {
-      config.log("You haven't touched your items yet since the last notification.")
+    this.on('log_untouched', () => {
+      log("You haven't touched your items yet since the last notification.")
     })
 
-    this.on('log_nopending', function(duration) {
-      config.log(chalk.yellow("No pending items. Your next review will be in " +
-        Moment.duration(duration).humanize()))
+    this.on('log_nopending', duration => {
+      log(`No pending items. Your next review will be in ${humanize(duration)} minutes.`)
     })
 
     Notifier.on('click', () => {
-      config.log('Notification clicked.')
+      log("Notification clicked.")
       let lessons = this.lastNotification.lessons
       let reviews = this.lastNotification.reviews
       let link
@@ -104,105 +101,71 @@ class WaniKaniNotifier extends WaniKaniEmitter {
         return
       }
 
-      this.log('Opening ' + link)
+      this.log(`Opening ${link}.`)
       open(link)
     })
   }
 
-  static console() {
-    var nomnom = require('nomnom')()
-    var FS = require('fs')
-    var Readline = require('readline')
-
-    var apiKeyOption = {
-      abbr: 'k',
-      help: "Your WaniKani public API key. You can find this under Menu > Account.",
-      metavar: 'API_KEY',
-      position: 1
-    }
-
-    async function promptForKey(key) {
-      if (key) return key
-      key = process.env.npm_package_config_key
-      if (key) return key
-
-      var i = Readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-      })
-
-      key = await new Promise(function(resolve) {
-        i.question(chalk.bold("API key: "), function(k) {
-          resolve(k)
-        })
-      })
-      i.close()
-      if (key) return key
-
-      throw new Error("API key not specified.")
-    }
-
-    var start = nomnom.command('start')
-    start.help("Starts the notifier.")
-    start.option('key', apiKeyOption)
-    start.callback(async function(opts) {
-      try {
-        var key = await promptForKey(opts.key)
-        var notifier = new WaniKaniNotifier({key})
-        await notifier.start()
-      }
-      catch (err) {
-        console.log(chalk.red(err.message))
-        process.exit(1)
-      }
-    })
-
-    var install = nomnom.command('install')
-    install.help("Installs the notifier to be called at startup. Requires global install. Currently Windows-only.")
-    install.option('key', apiKeyOption)
-    install.callback(async function(opts) {
-      var startupPath = await WaniKaniNotifier.getStartupPath()
-      var key
-      try {
-        key = await promptForKey(opts.key)
-      }
-      catch (err) {
-        console.log(chalk.red(err.message))
-        process.exit(1)
-      }
-      FS.writeFileSync(startupPath, "wanikani-notifier start " + key)
-    })
-
-    var uninstall = nomnom.command('uninstall')
-    uninstall.help("Uninstalls the notifier from startup.")
-    uninstall.callback(async function(opts) {
-      var startupPath = await WaniKaniNotifier.getStartupPath()
-      FS.unlinkSync(startupPath)
-    })
-
-    nomnom.parse()
-  }
-
-  static async getStartupPath() {
-    var OS = require('os')
-    var Path = require('path')
-    var ChildProcess = require('child_process')
-    // Windows
-    if (OS.platform() === 'win32') {
-      var regQueryOutput = await new Promise(function(resolve, reject) {
-        ChildProcess.exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders" ' +
-        '/v Startup', function(error, stdout, stderr) {
-          if (error) {
-            reject(error)
+  static async console() {
+    try {
+      let cli = meow(`
+  Usage
+    wanikani-notifier [opts]
+    wanikani-notifier install | i
+    wanikani-notifier uninstall | un
+`,
+        {}
+      )
+      let [command] = cli.input
+      if (command) {
+        switch (command) {
+          case 'reinstall':
+            try {
+              await ServiceManager.reinstall()
+              await ServiceManager.start()
+            }
+            catch (err) {}
+          case 'install':
+          case 'i':
+            await ServiceManager.install()
+            await ServiceManager.start()
+            Notifier.notify({
+              title: "WaniKani Notifier",
+              message: "Installed."
+            })
             return
-          }
-          resolve(stdout)
+          case 'install-only':
+            await ServiceManager.install()
+            return
+          case 'uninstall':
+          case 'un':
+            await ServiceManager.stop()
+            await ServiceManager.uninstall()
+            return
+          default:
+            throw new Error(`Unknown command: ${command}.`)
+        }
+      }
+      let opts = cli.flags
+      if (opts.asService) {
+        await FS.appendFile(`${__dirname}/lock`, `${process.pid}\n`)
+        process.once('SIGINT', () => {
+          FS.unlinkSync(`${__dirname}/lock`)
         })
+      }
+      opts = Object.assign({}, opts, rc(pkg.name))
+      let notifier = new WaniKaniNotifier(opts)
+      await notifier.start()
+    }
+    catch (err) {
+      await Notifier.notify({
+        title: "WN: Error occured.",
+        message: err.message
       })
-      var startup = regQueryOutput.split(OS.EOL)[2].match(/\s+Startup\s+REG_SZ\s+(.*)/)[1]
-      return Path.join(startup, 'wanikani-notifier-startup.cmd')
+      throw err
     }
   }
+
 
 }
 
