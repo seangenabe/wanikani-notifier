@@ -112,6 +112,7 @@ class WaniKaniNotifier extends WaniKaniEmitter {
   Usage
     wanikani-notifier [opts]
     wanikani-notifier install | i
+    wanikani-notifier install-only
     wanikani-notifier uninstall | un
 `,
         {}
