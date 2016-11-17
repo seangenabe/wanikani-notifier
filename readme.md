@@ -11,7 +11,7 @@ WaniKani new lessons and reviews notifier
 Install the package globally:
 
 ```
-npm i -g seangenabe/wanikani-notifier
+npm i -g wanikani-notifier
 ```
 
 **Config file (Required!)**
