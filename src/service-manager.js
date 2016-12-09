@@ -6,6 +6,7 @@ const OS = require('os')
 const FS = require('node-puff/fs')
 const puff = require('puff/dynamic')
 const cjoin = require('command-join')
+const fkill = require('fkill')
 
 const quiet = Path.resolve(`${__dirname}/../quiet.exe`)
 const regQuery = `reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders" /v Startup`
@@ -81,9 +82,12 @@ objShell.Run "wanikani-notifier --as-service", 0, True`,
       else {
         pids = []
       }
-      await Promise.all(pids.map(pid =>
-        ChildProcess.spawn(`taskkill /f /pid ${pid}`)
-      ))
+      try {
+        await Promise.all(pids.map(pid => fkill(pid)))
+      }
+      catch (err) {
+        // Don't care
+      }
     }
     else {
       throw new Error("Platform not supported.")
