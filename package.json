@@ -1,6 +1,6 @@
 {
   "name": "wanikani-notifier",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Wanikani new lessons and reviews notifier",
   "main": "lib/index.js",
   "scripts": {
