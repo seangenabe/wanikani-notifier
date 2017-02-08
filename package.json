@@ -30,7 +30,7 @@
     "wanikani-notifier": "./bin/wanikani-notifier"
   },
   "dependencies": {
-    "command-join": "^1.0.1",
+    "command-join": "^2.0.0",
     "fkill": "^4.1.0",
     "meow": "^3.7.0",
     "node-notifier": "^4.6.1",
