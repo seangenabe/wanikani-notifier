@@ -1,5 +1,7 @@
 # wanikani-notifier
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/seangenabe/wanikani-notifier.svg)](https://greenkeeper.io/)
+
 WaniKani new lessons and reviews notifier
 
 ## Usage
