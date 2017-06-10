@@ -35,7 +35,7 @@
     "meow": "^3.7.0",
     "node-notifier": "^5.0.0",
     "node-puff": "^1.0.1",
-    "opn": "^4.0.2",
+    "opn": "^5.1.0",
     "puff": "^1.1.0",
     "rc": "^1.1.6",
     "wanikani-emitter": "^1.1.1"
