@@ -32,7 +32,7 @@
   "dependencies": {
     "command-join": "^2.0.0",
     "fkill": "^4.1.0",
-    "meow": "^3.7.0",
+    "meow": "^5.0.0",
     "node-notifier": "^5.0.0",
     "node-puff": "^1.0.1",
     "opn": "^4.0.2",
